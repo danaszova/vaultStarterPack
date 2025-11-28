@@ -1,0 +1,45 @@
+{
+  "name": "cross-chain-strategy-factory",
+  "version": "1.0.0",
+  "description": "Fully customizable cross-chain strategy factory for automated DeFi trading",
+  "main": "index.js",
+  "scripts": {
+    "compile": "npx hardhat compile",
+    "test": "npx hardhat test",
+    "test:coverage": "npx hardhat coverage",
+    "deploy:local": "npx hardhat run scripts/deploy.ts --network localhost",
+    "deploy:sepolia": "npx hardhat run scripts/deploy.ts --network sepolia",
+    "deploy:mainnet": "npx hardhat run scripts/deploy.ts --network mainnet",
+    "node": "npx hardhat node"
+  },
+  "keywords": [
+    "defi",
+    "cross-chain",
+    "smart-contracts",
+    "ethereum",
+    "solidity",
+    "chainlink",
+    "ccip"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.0",
+    "@typechain/ethers-v6": "^0.5.0",
+    "@typechain/hardhat": "^9.0.0",
+    "hardhat": "^2.19.0",
+    "hardhat-deploy": "^0.11.45",
+    "hardhat-gas-reporter": "^1.0.9",
+    "solidity-coverage": "^0.8.5",
+    "typechain": "^8.3.1"
+  },
+  "dependencies": {
+    "@chainlink/contracts": "^1.5.0",
+    "@chainlink/contracts-ccip": "^1.6.3",
+    "@openzeppelin/contracts": "^5.0.2",
+    "@uniswap/v3-core": "^1.0.1",
+    "@uniswap/v3-periphery": "^1.4.4",
+    "dotenv": "^16.3.1"
+  }
+}
