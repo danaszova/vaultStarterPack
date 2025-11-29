@@ -27,8 +27,12 @@ export default function VaultList() {
                     <Loader2 className="animate-spin h-8 w-8 text-blue-500" />
                 </div>
             ) : total === 0 ? (
-                <div className="text-center py-12 text-gray-500 bg-gray-900/30 rounded-xl border border-gray-800 border-dashed">
-                    No vaults found. Create one to get started.
+                <div className="text-center py-16 px-6 text-gray-500 bg-white/5 rounded-2xl border border-white/10 border-dashed backdrop-blur-sm">
+                    <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Loader2 className="h-8 w-8 text-gray-600" />
+                    </div>
+                    <h3 className="text-lg font-medium text-white mb-1">No vaults found</h3>
+                    <p className="text-gray-400">Create your first strategy vault to get started.</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

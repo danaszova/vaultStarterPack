@@ -3,5 +3,22 @@
 @tailwind utilities;
 
 body {
-  @apply bg-black text-white antialiased;
+  @apply bg-[#0a0a0a] text-white antialiased min-h-screen selection:bg-purple-500/30;
+  background-image:
+    radial-gradient(circle at 50% 0%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 0% 0%, rgba(74, 32, 138, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.1) 0%, transparent 50%);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-white/10 rounded-full hover:bg-white/20 transition-colors;
 }

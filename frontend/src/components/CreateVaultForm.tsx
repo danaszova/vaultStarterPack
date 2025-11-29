@@ -43,44 +43,58 @@ export default function CreateVaultForm() {
     };
 
     return (
-        <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800 backdrop-blur-sm">
-            <h2 className="text-xl font-bold mb-4 text-white">Create Strategy Vault</h2>
-            <form onSubmit={handleCreate} className="space-y-4">
-                <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Amount (TEST Token)</label>
-                    <input
-                        type="number"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        className="w-full bg-black/50 border border-gray-700 rounded-lg p-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                    />
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Lock Period (Seconds)</label>
-                    <input
-                        type="number"
-                        value={lockPeriod}
-                        onChange={(e) => setLockPeriod(e.target.value)}
-                        className="w-full bg-black/50 border border-gray-700 rounded-lg p-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                    />
-                </div>
-
-                <button
-                    type="submit"
-                    disabled={isPending || isConfirming}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors flex justify-center items-center gap-2"
-                >
-                    {(isPending || isConfirming) && <Loader2 className="animate-spin h-4 w-4" />}
-                    {isPending ? 'Confirming...' : isConfirming ? 'Deploying...' : 'Create Vault'}
-                </button>
-
-                {isSuccess && (
-                    <div className="p-3 bg-green-900/30 border border-green-800 rounded-lg text-green-400 text-sm">
-                        Vault created successfully!
+        <div className="relative group">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl opacity-20 group-hover:opacity-30 transition duration-500 blur"></div>
+            <div className="relative bg-black/40 p-8 rounded-2xl border border-white/10 backdrop-blur-xl">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-blue-500/10 rounded-lg">
+                        <Loader2 className="h-6 w-6 text-blue-400" />
                     </div>
-                )}
-            </form>
+                    <h2 className="text-xl font-bold text-white">Create Strategy Vault</h2>
+                </div>
+
+                <form onSubmit={handleCreate} className="space-y-6">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-2">Amount (TEST Token)</label>
+                        <div className="relative">
+                            <input
+                                type="number"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 outline-none transition-all"
+                                placeholder="0.00"
+                            />
+                            <div className="absolute right-3 top-3 text-sm text-gray-500 font-mono">TEST</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-2">Lock Period (Seconds)</label>
+                        <input
+                            type="number"
+                            value={lockPeriod}
+                            onChange={(e) => setLockPeriod(e.target.value)}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 outline-none transition-all"
+                        />
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={isPending || isConfirming}
+                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {(isPending || isConfirming) && <Loader2 className="animate-spin h-5 w-5" />}
+                        {isPending ? 'Confirming...' : isConfirming ? 'Deploying...' : 'Create Vault'}
+                    </button>
+
+                    {isSuccess && (
+                        <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl text-green-400 text-sm flex items-center gap-2">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            Vault created successfully!
+                        </div>
+                    )}
+                </form>
+            </div>
         </div>
     );
 }
