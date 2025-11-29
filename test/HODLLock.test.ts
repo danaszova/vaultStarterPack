@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { time } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-
+import { HODLLock } from "../typechain";
 
 describe("HODLLock", function () {
     async function deployFixture() {
@@ -44,7 +44,7 @@ describe("HODLLock", function () {
             const { hodlLock, token, user } = await deployFixture();
             const amount = ethers.parseUnits("100", 18);
 
-            await expect(hodlLock.connect(user).lock(user.address, await token.getAddress(), amount, 3600))
+            await expect((hodlLock.connect(user) as HODLLock).lock(user.address, await token.getAddress(), amount, 3600))
                 .to.be.revertedWithCustomError(hodlLock, "OwnableUnauthorizedAccount");
         });
     });
@@ -62,7 +62,7 @@ describe("HODLLock", function () {
             // Fast forward
             await time.increase(duration + 1);
 
-            await expect(hodlLock.connect(user).withdraw(await token.getAddress()))
+            await expect((hodlLock.connect(user) as HODLLock).withdraw(await token.getAddress()))
                 .to.emit(hodlLock, "Withdrawn")
                 .withArgs(user.address, await token.getAddress(), amount);
 
@@ -78,7 +78,7 @@ describe("HODLLock", function () {
             await token.approve(await hodlLock.getAddress(), amount);
             await hodlLock.lock(user.address, await token.getAddress(), amount, duration);
 
-            await expect(hodlLock.connect(user).withdraw(await token.getAddress()))
+            await expect((hodlLock.connect(user) as HODLLock).withdraw(await token.getAddress()))
                 .to.be.revertedWith("Funds are still locked");
         });
     });

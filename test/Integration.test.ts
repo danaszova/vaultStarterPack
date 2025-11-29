@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { time } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-
+import { MockERC20, StrategyVault } from "../typechain";
 
 describe("Cross-Chain Integration", function () {
     async function deployFixture() {
@@ -64,8 +64,8 @@ describe("Cross-Chain Integration", function () {
 
         // Fund Strategy
         await usdc.mint(user.address, ethers.parseUnits("100", 6));
-        await usdc.connect(user).approve(await strategy.getAddress(), ethers.parseUnits("100", 6));
-        await strategy.connect(user).deposit(ethers.parseUnits("100", 6));
+        await (usdc.connect(user) as MockERC20).approve(await strategy.getAddress(), ethers.parseUnits("100", 6));
+        await (strategy.connect(user) as StrategyVault).deposit(ethers.parseUnits("100", 6));
 
         await link.mint(await strategy.getAddress(), ethers.parseUnits("10", 18));
 
