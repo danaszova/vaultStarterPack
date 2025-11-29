@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { EventLog } from "ethers";
 import { time } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { MockERC20, StrategyVault } from "../typechain";
 
@@ -77,8 +78,8 @@ describe("Cross-Chain Integration", function () {
         // Verify Router Event
         const sentEvents = await mockRouter.queryFilter(mockRouter.filters.MessageSent());
         expect(sentEvents.length).to.equal(1);
-        const messageId = sentEvents[0].args[1];
-        const message = sentEvents[0].args[2];
+        const messageId = (sentEvents[0] as EventLog).args[1];
+        const message = (sentEvents[0] as EventLog).args[2];
 
         // Verify message content
         const decodedData = ethers.AbiCoder.defaultAbiCoder().decode(

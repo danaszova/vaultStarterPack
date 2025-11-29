@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { EventLog } from "ethers";
 import { loadFixture, time } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { MockERC20__factory } from "../typechain/factories/contracts/MockERC20__factory";
 import { StrategyFactory__factory } from "../typechain/factories/contracts/StrategyFactory__factory";
@@ -65,7 +66,7 @@ describe("StrategyVault System", function () {
     const strategyCreatedEvent = receipt?.logs.find(
       (log: any) => log.fragment?.name === "StrategyCreated"
     );
-    const strategyAddress = strategyCreatedEvent?.args[0];
+    const strategyAddress = (strategyCreatedEvent as EventLog)?.args[0];
 
     const strategy = await ethers.getContractAt("StrategyVault", strategyAddress);
 
@@ -90,7 +91,7 @@ describe("StrategyVault System", function () {
       );
       expect(strategyCreatedEvent).to.not.be.undefined;
 
-      const strategyAddress = strategyCreatedEvent?.args[0];
+      const strategyAddress = (strategyCreatedEvent as EventLog)?.args[0];
       expect(strategyAddress).to.be.properAddress;
 
       // Verify strategy is tracked
@@ -128,7 +129,7 @@ describe("StrategyVault System", function () {
       const strategyCreatedEvent = receipt?.logs.find(
         (log: any) => log.fragment?.name === "StrategyCreated"
       );
-      const strategyAddress = strategyCreatedEvent?.args[0];
+      const strategyAddress = (strategyCreatedEvent as EventLog)?.args[0];
 
       const strategy = await ethers.getContractAt("StrategyVault", strategyAddress);
 
