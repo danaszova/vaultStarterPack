@@ -1,11 +1,11 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { time } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { HODLLock } from "../typechain";
+
 
 describe("HODLLock", function () {
     async function deployFixture() {
-        const [owner, user, other] = await ethers.getSigners();
+        const [owner, user] = await ethers.getSigners();
 
         const MockERC20 = await ethers.getContractFactory("MockERC20");
         const token = await MockERC20.deploy("Test Token", "TEST", 18);
@@ -13,7 +13,7 @@ describe("HODLLock", function () {
         const HODLLock = await ethers.getContractFactory("HODLLock");
         const hodlLock = await HODLLock.deploy(owner.address);
 
-        return { hodlLock, token, owner, user, other };
+        return { hodlLock, token, owner, user };
     }
 
     describe("Locking", function () {

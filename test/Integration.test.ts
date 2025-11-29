@@ -1,11 +1,11 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { time } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { Client } from "../typechain/contracts/LegacyVaultHub";
+
 
 describe("Cross-Chain Integration", function () {
     async function deployFixture() {
-        const [owner, user, other] = await ethers.getSigners();
+        const [owner, user] = await ethers.getSigners();
 
         // 1. Deploy Tokens
         const MockERC20 = await ethers.getContractFactory("MockERC20");
@@ -58,7 +58,7 @@ describe("Cross-Chain Integration", function () {
     }
 
     it("Should execute strategy and lock funds on destination", async function () {
-        const { owner, user, usdc, link, mockRouter, hodlLock, hub, strategy, strategyParams } = await deployFixture();
+        const { user, usdc, link, mockRouter, hodlLock, hub, strategy, strategyParams } = await deployFixture();
 
         // --- Source Chain Actions ---
 
