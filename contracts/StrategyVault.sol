@@ -8,26 +8,28 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import {IRouterClient} from "@chainlink/contracts-ccip/contracts/interfaces/IRouterClient.sol";
 import {Client} from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
 import {LinkTokenInterface} from "@chainlink/contracts/src/v0.8/shared/interfaces/LinkTokenInterface.sol";
+import "./interfaces/IRule.sol";
+
+import {AutomationCompatibleInterface} from "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
 
 /**
  * @title StrategyVault
  * @dev A customizable strategy vault that executes trades and sends cross-chain messages.
  */
-contract StrategyVault is ReentrancyGuard, Ownable {
+contract StrategyVault is ReentrancyGuard, Ownable, AutomationCompatibleInterface {
     // Strategy parameters
     struct StrategyParams {
+        string name;               // User-defined name for the vault
         address inputAsset;        // Input token (e.g., USDC)
         address targetAsset;       // Target token (e.g., AVAX)
-        address oracle;            // Chainlink price feed oracle address
-        uint256 triggerCondition;  // Target price condition
         uint256 executionAmount;   // Amount to execute
-        uint256 lockPeriod;        // Lock period in seconds
+        uint256 lockPeriod;        // Lock period in seconds (for destination)
         address beneficiary;       // Final recipient
-        bool conditionType;        // true = above, false = below
         address router;            // CCIP Router
         address hub;               // Hub address on destination chain
         uint64 destinationChainSelector; // Chain selector for destination
         address linkToken;         // LINK token address for fees
+        IRule[] rules;             // Array of execution rules (AND logic)
     }
 
     // Vault state
@@ -35,6 +37,7 @@ contract StrategyVault is ReentrancyGuard, Ownable {
     uint256 public totalDeposited;
     uint256 public lastExecutionTime;
     uint256 public releaseTime;
+    uint256 public deploymentTime;
     bool public executed;
     bool public locked;
 
@@ -50,14 +53,13 @@ contract StrategyVault is ReentrancyGuard, Ownable {
     constructor(StrategyParams memory _params) Ownable(_params.beneficiary) {
         require(_params.inputAsset != address(0), "Invalid input asset");
         require(_params.targetAsset != address(0), "Invalid target asset");
-        require(_params.oracle != address(0), "Invalid oracle");
-        require(_params.triggerCondition > 0, "Invalid trigger condition");
         require(_params.executionAmount > 0, "Invalid execution amount"); // Allow 0 for data-only messages
         require(_params.beneficiary != address(0), "Invalid beneficiary");
         require(_params.router != address(0), "Invalid router");
         require(_params.hub != address(0), "Invalid hub");
 
         params = _params;
+        deploymentTime = block.timestamp;
         // transferOwnership is not needed as we pass beneficiary to Ownable constructor
     }
 
@@ -83,15 +85,44 @@ contract StrategyVault is ReentrancyGuard, Ownable {
      */
     function checkConditions() public view returns (bool) {
         if (executed) return false;
+        if (params.rules.length == 0) return true; // No rules = immediate execution
         
-        // For now, use a simple timestamp-based condition for demonstration
-        return block.timestamp >= params.triggerCondition;
+        for (uint256 i = 0; i < params.rules.length; i++) {
+            if (!params.rules[i].check(address(this))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * @dev Chainlink Automation: Check if upkeep is needed
+     * @return upkeepNeeded True if conditions are met and not executed
+     * @return performData Empty bytes
+     */
+    function checkUpkeep(
+        bytes calldata /* checkData */
+    ) external view override returns (bool upkeepNeeded, bytes memory performData) {
+        upkeepNeeded = !executed && checkConditions() && totalDeposited >= params.executionAmount;
+        performData = "";
+    }
+
+    /**
+     * @dev Chainlink Automation: Perform upkeep (execute strategy)
+     */
+    function performUpkeep(
+        bytes calldata /* performData */
+    ) external override {
+        // We call executeStrategy directly. 
+        // Note: executeStrategy is public/external, so anyone can call it.
+        // The checks inside executeStrategy prevent abuse.
+        executeStrategy();
     }
 
     /**
      * @dev Execute the strategy when conditions are met and send CCIP message
      */
-    function executeStrategy() external nonReentrant {
+    function executeStrategy() public nonReentrant {
         require(!executed, "Strategy already executed");
         require(checkConditions(), "Conditions not met");
         require(totalDeposited >= params.executionAmount, "Insufficient funds");
@@ -175,6 +206,21 @@ contract StrategyVault is ReentrancyGuard, Ownable {
     }
 
     /**
+     * @dev Emergency withdraw if strategies fail (10 year fallback)
+     */
+    function emergencyWithdraw() external nonReentrant onlyOwner {
+        require(!executed, "Strategy already executed");
+        require(block.timestamp >= deploymentTime + 3650 days, "Emergency lock not expired");
+
+        IERC20 inputToken = IERC20(params.inputAsset);
+        uint256 balance = inputToken.balanceOf(address(this));
+        require(balance > 0, "No funds to withdraw");
+
+        require(inputToken.transfer(owner(), balance), "Withdrawal failed");
+        emit Withdrawn(owner(), balance);
+    }
+
+    /**
      * @dev Withdraw LINK tokens (emergency or leftover)
      */
     function withdrawLink() external onlyOwner {
@@ -197,5 +243,21 @@ contract StrategyVault is ReentrancyGuard, Ownable {
         executed_ = executed;
         locked_ = locked;
         timeRemaining = locked && block.timestamp < releaseTime ? releaseTime - block.timestamp : 0;
+    }
+
+    /**
+     * @dev Get all rules attached to this vault
+     */
+    function getRules() external view returns (IRule[] memory) {
+        return params.rules;
+    }
+
+    /**
+     * @dev Add a new rule to the strategy
+     * @param _rule The rule contract to add
+     */
+    function addRule(IRule _rule) external onlyOwner {
+        require(address(_rule) != address(0), "Invalid rule address");
+        params.rules.push(_rule);
     }
 }

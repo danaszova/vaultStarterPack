@@ -28,20 +28,24 @@ describe("StrategyVault System", function () {
     const StrategyFactory = await ethers.getContractFactory("StrategyFactory");
     const factory = await StrategyFactory.deploy();
 
+    // Deploy TimeLockRule
+    const TimeLockRule = await ethers.getContractFactory("TimeLockRule");
+    const triggerTime = (await time.latest()) + 3600;
+    const timeLockRule = await TimeLockRule.deploy(triggerTime);
+
     // Strategy parameters for testing
     const strategyParams = {
+      name: "Test Vault",
       inputAsset: await inputToken.getAddress(),
       targetAsset: await targetToken.getAddress(),
-      oracle: owner.address, // Using owner as mock oracle for testing
-      triggerCondition: (await time.latest()) + 3600, // 1 hour from now
       executionAmount: ethers.parseUnits("1000", 6), // 1000 USDC
       lockPeriod: 7 * 24 * 60 * 60, // 7 days
       beneficiary: owner.address,
-      conditionType: true,
       router: await router.getAddress(),
       hub: owner.address, // Mock hub address
       destinationChainSelector: "16015286601757825753",
-      linkToken: await linkToken.getAddress()
+      linkToken: await linkToken.getAddress(),
+      rules: [await timeLockRule.getAddress()]
     };
 
     return {
@@ -145,12 +149,39 @@ describe("StrategyVault System", function () {
       const { strategy, strategyParams, inputToken, targetToken } = await loadFixture(deployStrategyFixture);
 
       const params = await strategy.params();
+      expect(params.name).to.equal(strategyParams.name);
       expect(params.inputAsset).to.equal(await inputToken.getAddress());
       expect(params.targetAsset).to.equal(await targetToken.getAddress());
-      expect(params.triggerCondition).to.equal(strategyParams.triggerCondition);
       expect(params.executionAmount).to.equal(strategyParams.executionAmount);
       expect(params.lockPeriod).to.equal(strategyParams.lockPeriod);
       expect(params.beneficiary).to.equal(strategyParams.beneficiary);
+
+      const rules = await strategy.getRules();
+      expect(rules.length).to.equal(1);
+      expect(rules[0]).to.equal(strategyParams.rules[0]);
+
+      // Verify rule description
+      const rule = await ethers.getContractAt("TimeLockRule", rules[0]);
+      const description = await rule.getDescription();
+      expect(description).to.include("TimeLock: Unlocks at timestamp");
+    });
+
+    it("Should allow owner to add new rules", async function () {
+      // Use the strategy deployed in the beforeEach hook
+      const { strategy: strategyInstance } = await loadFixture(deployStrategyFixture);
+
+      const initialRules = await strategyInstance.getRules();
+      expect(initialRules.length).to.equal(1);
+
+      // Deploy a new rule
+      const TimeLockRule = await ethers.getContractFactory("TimeLockRule");
+      const newRule = await TimeLockRule.deploy((await time.latest()) + 7200); // +2 hours
+
+      await strategyInstance.addRule(await newRule.getAddress());
+
+      const updatedRules = await strategyInstance.getRules();
+      expect(updatedRules.length).to.equal(2);
+      expect(updatedRules[1]).to.equal(await newRule.getAddress());
     });
 
     it("Should accept deposits", async function () {

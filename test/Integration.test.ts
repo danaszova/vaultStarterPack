@@ -33,19 +33,23 @@ describe("Cross-Chain Integration", function () {
         const StrategyFactory = await ethers.getContractFactory("StrategyFactory");
         const factory = await StrategyFactory.deploy();
 
+        // Deploy TimeLockRule
+        const TimeLockRule = await ethers.getContractFactory("TimeLockRule");
+        const triggerTime = (await time.latest()) + 3600;
+        const timeLockRule = await TimeLockRule.deploy(triggerTime);
+
         const strategyParams = {
+            name: "Integration Vault",
             inputAsset: await usdc.getAddress(),
             targetAsset: await usdc.getAddress(),
-            oracle: owner.address,
-            triggerCondition: (await time.latest()) + 3600,
             executionAmount: ethers.parseUnits("100", 6),
             lockPeriod: 86400, // 1 day
             beneficiary: user.address,
-            conditionType: true,
             router: await mockRouter.getAddress(),
             hub: await hub.getAddress(),
             destinationChainSelector: "16015286601757825753",
-            linkToken: await link.getAddress()
+            linkToken: await link.getAddress(),
+            rules: [await timeLockRule.getAddress()]
         };
 
         await factory.createStrategy(strategyParams);
