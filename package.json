@@ -10,7 +10,8 @@
     "deploy:local": "npx hardhat run scripts/deploy.ts --network localhost",
     "deploy:sepolia": "npx hardhat run scripts/deploy.ts --network sepolia",
     "deploy:mainnet": "npx hardhat run scripts/deploy.ts --network mainnet",
-    "node": "npx hardhat node"
+    "node": "npx hardhat node",
+    "postinstall": "mv node_modules/@openzeppelin/contracts-5.0.2 node_modules/@openzeppelin/contracts@5.0.2 || true"
   },
   "keywords": [
     "defi",
@@ -37,7 +38,8 @@
   "dependencies": {
     "@chainlink/contracts": "^1.5.0",
     "@chainlink/contracts-ccip": "^1.6.3",
-    "@openzeppelin/contracts": "^5.0.2",
+    "@openzeppelin/contracts": "5.0.2",
+    "@openzeppelin/contracts-5.0.2": "npm:@openzeppelin/contracts@5.0.2",
     "@uniswap/v3-core": "^1.0.1",
     "@uniswap/v3-periphery": "^1.4.4",
     "dotenv": "^16.3.1"
