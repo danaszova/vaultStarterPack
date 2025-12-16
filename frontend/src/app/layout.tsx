@@ -8,8 +8,8 @@ import Navbar from "@/components/Navbar";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Cross-Chain Vault",
-  description: "Secure cross-chain strategy vaults",
+  title: "Proxy Vault System",
+  description: "Upgradable proxy vaults with sequential rule execution",
 };
 
 export default function RootLayout({

@@ -1,14 +1,12 @@
-# Cross-Chain Strategy Vault 🏦
+# Upgradable Proxy Vault System 🏦
 
-**Automate your crypto assets across blockchains without the headache.**
+**Automated, upgradable strategy vaults with sequential rule execution.**
 
-Think of this project as a **"Smart Piggy Bank"** that can automatically move your money to the right place at the right time. You set the rules, and the vault handles the rest—securely and automatically.
+This project implements a next-generation vault system using **EIP-1167 minimal proxies** for gas-efficient, upgradable vault deployments. Users create vaults with ordered rule chains that execute sequentially, with configurable failsafes and dual fee mechanisms for long-term resilience.
 
 ---
 
 ## 🚀 Quick Start (Get Running in 5 Minutes)
-
-Follow these steps to get the project running on your local machine.
 
 ### 1. Prerequisites
 - **Node.js** (v18 or higher)
@@ -35,9 +33,9 @@ Create a `.env` file in the root directory:
 ```bash
 cp .env.example .env
 ```
-Open `.env` and add your details:
-- `PRIVATE_KEY`: Your wallet private key (Use a **TEST WALLET** only!).
-- `AVALANCHE_FUJI_RPC_URL`: Get a free RPC URL from [Infura](https://infura.io) or [Alchemy](https://alchemy.com).
+Open `.env` and add:
+- `PRIVATE_KEY`: Your wallet private key (Use a **TEST WALLET** only!)
+- `AVALANCHE_FUJI_RPC_URL`: Get a free RPC URL from [Infura](https://infura.io) or [Alchemy](https://alchemy.com)
 
 ### 4. Run the Frontend
 ```bash
@@ -51,62 +49,150 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ## 🎮 How to Use the App
 
 ### 1. Get Free Test Tokens 🪙
-You don't need real money!
-1.  Go to the **Faucet** page (link in top nav).
-2.  Click **"Mint 1000 DANA"**.
-3.  Add the DANA token to MetaMask using the address shown on screen.
+1. Go to the **Faucet** page (link in top nav)
+2. Click **"Mint 1000 DANA"** (or USDC_T)
+3. Add the token to MetaMask using the address shown
 
-### 2. Create a Vault 🔒
-1.  Go to the **Vaults** page.
-2.  Enter a **Vault Name** (e.g., "My Savings").
-3.  Set a **Target Execution Amount** (e.g., 100 DANA).
-4.  Set a **Lock Period** (e.g., 60 seconds).
-5.  Click **Create Vault**.
+### 2. Create a Proxy Vault 🔒
+1. Go to the **Vaults** page (main page)
+2. Select **Deposit Token** (DANA or USDC_T)
+3. Enter an optional **Vault Name**
+4. Click **Create Proxy Vault**
 
-### 3. Deposit & Execute 💸
-1.  Click **Deposit** on your new vault card.
-2.  Approve and Deposit your DANA tokens.
-3.  Once the **Target Amount** is reached and **Lock Period** passes, the status will change.
-4.  Click **Execute Strategy** to simulate the cross-chain move!
+**Features included:**
+- Upgradable proxy architecture (EIP-1167)
+- Three pre-configured rules (TimeLock, Price, Performance)
+- 0.1% deposit fee + 2% success fee on profits
+- 1-year failsafe timer (no fee on failsafe withdrawal)
+
+### 3. Deposit & Monitor 💸
+1. Your vault will appear in the vault list (may require refresh)
+2. Click **Deposit** to add tokens
+3. Monitor rule progress and vault status
+4. Execute rules when conditions are met
 
 ---
 
-## 💡 Use Cases
+## 💡 Key Features
 
-### 1. The "HODL" Lock 🔒
-**Problem**: You want to hold Bitcoin or Ethereum for the long term, but you're tempted to sell when the price drops.
-**Solution**: Create a vault that locks your tokens for 1 year. The system literally *cannot* let you withdraw until the time is up.
+### 1. Upgradable Proxy Architecture
+- **Gas-efficient**: EIP-1167 minimal proxies reduce deployment costs
+- **Upgradable**: Implementation can be upgraded by governance
+- **Secure**: 7-day timelock on implementation upgrades
 
-### 2. Cross-Chain Savings 💸
-**Problem**: You earn high yields on a newer blockchain (like Base), but you want to keep your savings on the main Ethereum network for safety.
-**Solution**: Set a rule: "Every month, move 50% of my profits from Base to Ethereum."
+### 2. Sequential Rule Execution
+- **Ordered rule chains**: Rules execute in defined sequence
+- **Multiple rule types**: TimeLock, Price, Performance rules included
+- **Extensible**: Easy to add new rule types via registry system
 
-### 3. The Trust Fund 🎓
-**Problem**: You want to give crypto to your children, but only when they turn 18.
-**Solution**: Create a vault with a "Time Lock" that expires on their 18th birthday.
+### 3. Dual Fee Mechanism
+- **Deposit fee**: 0.1% charged immediately (funds development)
+- **Success fee**: 2% charged only on profits
+- **No fee on failsafe**: If vault unlocks via timer
+
+### 4. Long-Term Resilience
+- **Configurable failsafe**: 1-day to 100+ year unlock timers
+- **Always depositable**: Can add funds anytime
+- **Withdrawal-only lock**: Funds locked until rules complete or failsafe triggers
 
 ---
 
 ## 👨‍💻 For Developers
 
 ### Project Structure
-- `contracts/`: Solidity smart contracts (Hardhat).
-- `frontend/`: Next.js web application.
-- `scripts/`: Deployment and utility scripts.
-- `test/`: Automated test suite.
-
-### Running Tests
-The system is fully tested with **92%+ code coverage**.
-```bash
-npx hardhat test
+```
+├── contracts/                    # Smart contracts
+│   ├── VaultProxyFactory.sol     # Proxy factory (EIP-1167)
+│   ├── StrategyVaultImplementation.sol  # Upgradable vault logic
+│   ├── rules/                    # Rule implementations
+│   └── interfaces/               # Contract interfaces
+├── frontend/                     # Next.js frontend
+│   ├── src/app/                  # App router pages
+│   ├── src/components/           # React components
+│   └── src/config/               # Configuration & constants
+├── scripts/                      # Deployment & utility scripts
+├── test/                         # Test suite
+└── working-docs/                 # Development documentation
 ```
 
-### Architecture
-- **StrategyVault**: The core contract holding funds and logic.
-- **StrategyFactory**: A factory to easily deploy new vaults.
-- **Cross-Chain (CCIP)**: Uses Chainlink CCIP for secure cross-chain messaging.
+### Current Deployment (Avalanche Fuji)
+| Contract | Address | Purpose |
+|----------|---------|---------|
+| **VaultProxyFactory** | `0x0cD47DE2f7d716b0b52c7C0a83Fbc563ee115838` | Deploys proxy vaults |
+| **StrategyVaultImplementation** | `0x720FDAa0B171CA358f18D1e71Df7473A55DEb2D1` | Vault logic |
+| **TimeLockRule** | `0x181754E8E0603c2C735b14b907B92156DeC9595E` | Time-based rule |
+| **PriceRule** | `0xe594075cA42F6832683F38b2FB04aA91aa73AA5F` | Price threshold rule |
+| **PerformanceRule** | `0x49E9D7C46C7B990EE1c880A549be2d95DB1e8BFD` | Balance threshold rule |
+| **MockERC20 (DANA)** | `0xA729fCc582e0c0150C94e4e68319fF3D0aab3edb` | Test token |
+
+### Running Tests
+```bash
+# Run all tests
+npx hardhat test
+
+# Run specific test file
+npx hardhat test test/ProxyVaultSystem.test.ts
+
+# Run with coverage report
+npx hardhat coverage
+```
+
+### Deploying to Testnet
+```bash
+# Deploy proxy system to Fuji
+npx hardhat run scripts/deploy_proxy_system.ts --network avalancheFuji
+
+# Deploy mock tokens
+npx hardhat run scripts/deploy_usdc_t.ts --network avalancheFuji
+```
+
+### Architecture Overview
+- **VaultProxyFactory**: Creates minimal proxy vaults pointing to StrategyVaultImplementation
+- **StrategyVaultImplementation**: Contains all vault logic (rules, fees, state management)
+- **Rule System**: Sequential execution of IStrategyRule implementations
+- **Registry System** (Phase 2): RuleRegistry, OracleRegistry, DEXRegistry, BridgeRegistry
 
 ---
 
-**License**: MIT
-**Status**: Beta (Testnet)
+## 📈 Development Roadmap
+
+### Phase 1: Foundation & Proxy Architecture ✅
+- [x] EIP-1167 proxy vault system
+- [x] Sequential rule engine
+- [x] Dual fee mechanism
+- [x] Testnet deployment (Avalanche Fuji)
+- [x] Frontend integration
+
+### Phase 2: Registry System (In Progress)
+- [ ] RuleRegistry for approved rule contracts
+- [ ] OracleRegistry for price feeds
+- [ ] DEXRegistry for swap routes
+- [ ] BridgeRegistry for cross-chain contingency
+- [ ] SwapRule and PriceChangeRule implementations
+
+### Phase 3: Governance & Mainnet
+- [ ] Multi-sig governance
+- [ ] DAO transition
+- [ ] Security audits
+- [ ] Mainnet deployment
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our development documentation in `working-docs/` for:
+- Project architecture and design decisions
+- Development workflow and standards
+- Team roles and coordination protocols
+
+**Key Documentation:**
+- `working-docs/planning/development_plan.md` - Detailed development roadmap
+- `working-docs/development/documentation-guide.md` - Documentation standards
+- `working-docs/development/team-roles.md` - Team coordination
+
+---
+
+**License**: MIT  
+**Status**: Phase 1 Complete, Active Development  
+**Testnet**: Avalanche Fuji  
+**Mainnet**: Coming Soon

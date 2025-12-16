@@ -20,7 +20,7 @@ export default function Navbar() {
                                 <span className="text-white font-bold text-lg">V</span>
                             </div>
                             <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-                                CrossChain Vault
+                                Proxy Vault System
                             </span>
                         </Link>
 
