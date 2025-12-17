@@ -7,50 +7,168 @@ import TimeLockRuleABI from '@/abis/TimeLockRule.json';
 import PriceRuleABI from '@/abis/PriceRule.json';
 import PerformanceRuleABI from '@/abis/PerformanceRule.json';
 import { SUPPORTED_TOKENS, PROXY_SYSTEM_FUJI } from '@/config/constants';
-import { Loader2, Lock, Unlock, ArrowRightLeft, Wallet, Plus, Clock, TrendingUp, X, RefreshCw, BarChart3 } from 'lucide-react';
+import { Loader2, Lock, Unlock, ArrowRightLeft, Wallet, Plus, Clock, TrendingUp, X, RefreshCw, BarChart3, Copy, Check } from 'lucide-react';
 
 interface VaultCardProps {
     address: `0x${string}`;
 }
 
-function RuleItem({ address, index }: { address: `0x${string}`, index: number }) {
-    // Try TimeLock first
-    const { data: timeDesc, isError: isTimeError } = useReadContract({
+type RuleStatus = 'active' | 'pending' | 'completed';
+
+function RuleItem({ address, index, status }: { address: `0x${string}`, index: number, status: RuleStatus }) {
+    // 1. TIMELOCK RULE
+    const { data: unlockTime } = useReadContract({
         address,
         abi: TimeLockRuleABI.abi,
-        functionName: 'getDescription',
+        functionName: 'unlockTime',
     });
 
-    // Try PriceRule if TimeLock fails
-    const { data: priceDesc, isError: isPriceError } = useReadContract({
+    // 2. PRICE RULE
+    const { data: priceTarget } = useReadContract({
         address,
         abi: PriceRuleABI.abi,
-        functionName: 'getDescription',
-        query: { enabled: isTimeError || !timeDesc }
+        functionName: 'targetPrice',
+    });
+    const { data: isGreaterThan } = useReadContract({
+        address,
+        abi: PriceRuleABI.abi,
+        functionName: 'isGreaterThan',
     });
 
-    // Try PerformanceRule if others fail
-    const { data: perfDesc } = useReadContract({
+    // 3. PERFORMANCE RULE
+    const { data: perfToken } = useReadContract({
         address,
         abi: PerformanceRuleABI.abi,
-        functionName: 'getDescription',
-        query: { enabled: (isTimeError || !timeDesc) && (isPriceError || !priceDesc) }
+        functionName: 'token',
+    });
+    const { data: perfTarget } = useReadContract({
+        address,
+        abi: PerformanceRuleABI.abi,
+        functionName: 'targetBalance',
     });
 
-    const description = (timeDesc || priceDesc || perfDesc) as string;
+    // Fetch Token Decimals for Performance Rule
+    const { data: perfTokenDecimals } = useReadContract({
+        address: perfToken as `0x${string}`,
+        abi: MockERC20ABI.abi,
+        functionName: 'decimals',
+        query: { enabled: !!perfToken }
+    });
+
+    // Fetch Token Symbol for Performance Rule
+    const { data: perfTokenSymbol } = useReadContract({
+        address: perfToken as `0x${string}`,
+        abi: MockERC20ABI.abi,
+        functionName: 'symbol',
+        query: { enabled: !!perfToken }
+    });
+
+    // Fetch CURRENT Balance for Progress Bar
+    const { data: currentPerfBalance } = useReadContract({
+        address: perfToken as `0x${string}`,
+        abi: MockERC20ABI.abi,
+        functionName: 'balanceOf',
+        args: [address], // vault address is the one holding tokens? Wait, address passed to RuleItem is the VAULT address. yes.
+        query: { enabled: !!perfToken && !!address }
+    });
+
+    let description = "Loading rule...";
+    let subDescription = "";
+    let progress: number | null = null;
+    let progressColor = "bg-blue-500";
+
+    if (unlockTime) {
+        const date = new Date(Number(unlockTime as bigint) * 1000);
+        const now = Date.now();
+        const target = date.getTime();
+        // Simple visual progress if within 24h? Or just show time.
+        // Let's keep it simple for TimeLock: just text.
+        description = `TimeLock: Wait until ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        subDescription = date.toLocaleDateString();
+
+        // If we want a progress bar for time, we need a start time (creation time), which we don't have easily.
+        // So no progress bar for TimeLock for now.
+
+    } else if (priceTarget !== undefined) {
+        // Chainlink uses 8 decimals
+        const price = formatUnits(priceTarget as bigint, 8);
+        const op = (isGreaterThan as boolean) ? ">" : "<";
+        description = `Price: Target ${op} $${Number(price).toFixed(2)}`;
+        // For price, showing current price vs target would be cool, but we need the Oracle address to fetch current price.
+        // PriceRule has 'oracle' public var. We could fetch it. 
+        // For simplicity/speed, let's leave it as text for now. (User primarily asked about Performance/Balance previously).
+    } else if (perfTarget !== undefined) {
+        const decimals = perfTokenDecimals ? Number(perfTokenDecimals as bigint) : 18;
+        const targetAmt = Number(formatUnits(perfTarget as bigint, decimals));
+        const currentAmt = currentPerfBalance ? Number(formatUnits(currentPerfBalance as bigint, decimals)) : 0;
+        const symbol = (perfTokenSymbol as string) || "Tokens";
+
+        description = `Performance: Balance >= ${targetAmt.toLocaleString()} ${symbol}`;
+        subDescription = `Current: ${currentAmt.toLocaleString()} ${symbol}`;
+
+        // Calculate Progress
+        if (targetAmt > 0) {
+            progress = Math.min(100, (currentAmt / targetAmt) * 100);
+            progressColor = "bg-pink-500";
+        }
+    } else {
+        if (!unlockTime && priceTarget === undefined && perfTarget === undefined) {
+            description = "Loading rule...";
+        }
+    }
+
+    // Determine styles based on status
+    const isPending = status === 'pending';
+    const isCompleted = status === 'completed';
+    const isActive = status === 'active';
+
+    const containerStyle = isPending
+        ? "bg-white/5 border-white/5 text-gray-500 opacity-60"
+        : isCompleted
+            ? "bg-green-500/5 border-green-500/20 text-green-100"
+            : "bg-blue-500/10 border-blue-500/30 text-white shadow-[0_0_15px_rgba(59,130,246,0.1)]"; // Active
+
+    const iconBg = isPending
+        ? "bg-white/10 text-gray-500"
+        : isCompleted
+            ? "bg-green-500/20 text-green-400"
+            : "bg-blue-500/20 text-blue-400"; // Active
 
     return (
-        <div className="flex items-center gap-2 text-xs text-gray-400 bg-white/5 p-2 rounded-lg border border-white/5">
-            <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold">
-                {index + 1}
+        <div className={`flex flex-col gap-2 text-sm p-3 rounded-xl border transition-all duration-300 ${containerStyle}`}>
+            <div className="flex items-center gap-3">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${iconBg}`}>
+                    {isCompleted ? <Check className="h-3.5 w-3.5" /> :
+                        isPending ? <Lock className="h-3.5 w-3.5" /> :
+                            (index + 1)}
+                </div>
+                <div className="flex flex-col flex-1">
+                    <span className={`font-medium font-mono ${isActive ? 'text-blue-100' : ''}`}>{description}</span>
+                    {subDescription && <span className={`text-xs ${isCompleted ? 'text-green-400/70' : 'text-gray-500'}`}>{subDescription}</span>}
+                </div>
+                {isActive && (
+                    <div className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/20 uppercase tracking-wide">
+                        Active
+                    </div>
+                )}
             </div>
-            <span className="font-mono">{description || "Loading rule..."}</span>
+
+            {/* Progress Bar (Only show for Active Performance Rules) */}
+            {progress !== null && isActive && (
+                <div className="ml-9 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                    <div
+                        className={`h-full ${progressColor} transition-all duration-500 ease-out`}
+                        style={{ width: `${progress}%` }}
+                    ></div>
+                </div>
+            )}
         </div>
     );
 }
 
 export default function VaultCard({ address }: VaultCardProps) {
     const { address: userAddress } = useAccount();
+    const [copied, setCopied] = useState(false);
 
     const { data: balance, refetch: refetchBalance } = useReadContract({
         address,
@@ -82,7 +200,7 @@ export default function VaultCard({ address }: VaultCardProps) {
     const isConditionCheckEnabled = isLocked && currentRuleIndex < ruleCount;
 
     // Check if current rule condition is met (only when vault is locked and has rules)
-    const { data: canExecuteCurrentRule, refetch: refetchCanExecute } = useReadContract({
+    const { data: canExecuteRaw, refetch: refetchCanExecute } = useReadContract({
         address,
         abi: StrategyVaultImplementationABI.abi,
         functionName: 'checkCurrentRule',
@@ -90,6 +208,7 @@ export default function VaultCard({ address }: VaultCardProps) {
             enabled: isConditionCheckEnabled
         }
     });
+    const canExecuteCurrentRule = canExecuteRaw as boolean | undefined;
 
     // Get current rule address
     const currentRuleAddress = isConditionCheckEnabled && rules ? (rules as `0x${string}`[])[Number(currentRuleIndex)] : undefined;
@@ -123,12 +242,13 @@ export default function VaultCard({ address }: VaultCardProps) {
     const publicClient = usePublicClient();
 
     // Check if current rule is a TimeLockRule by trying to read unlockTime
-    const { data: timeLockTimestamp } = useReadContract({
+    const { data: timeLockTimestampRaw } = useReadContract({
         address: currentRuleAddress,
         abi: TimeLockRuleABI.abi,
         functionName: 'unlockTime',
         query: { enabled: !!currentRuleAddress && isConditionCheckEnabled }
     });
+    const timeLockTimestamp = timeLockTimestampRaw as bigint | undefined;
 
     // Helper for countdown
     const [currentTime, setCurrentTime] = useState(Date.now());
@@ -377,12 +497,13 @@ export default function VaultCard({ address }: VaultCardProps) {
                                 <button
                                     onClick={() => {
                                         navigator.clipboard.writeText(address);
-                                        // Optional: Add a toast or visual feedback here
-                                        alert("Address copied!");
+                                        setCopied(true);
+                                        setTimeout(() => setCopied(false), 2000);
                                     }}
-                                    className="text-xs bg-white/5 hover:bg-white/10 text-blue-400 px-2 py-0.5 rounded border border-blue-500/20 transition-colors"
+                                    className="p-1 hover:bg-white/10 rounded-md transition-colors text-gray-500 hover:text-white"
+                                    title="Copy Address"
                                 >
-                                    Copy
+                                    {copied ? <Check className="h-3 w-3 text-green-400" /> : <Copy className="h-3 w-3" />}
                                 </button>
                             </div>
                         </div>
@@ -423,9 +544,27 @@ export default function VaultCard({ address }: VaultCardProps) {
                     {/* Rule List */}
                     {ruleCount > 0 && (
                         <div className="space-y-2">
-                            {(rules as `0x${string}`[]).map((ruleAddr, idx) => (
-                                <RuleItem key={ruleAddr} address={ruleAddr} index={idx} />
-                            ))}
+                            {(rules as `0x${string}`[]).map((ruleAddr, idx) => {
+                                const ruleStatus: RuleStatus = completedSuccessfully
+                                    ? 'completed'
+                                    : idx < Number(currentRuleIndex)
+                                        ? 'completed'
+                                        : idx === Number(currentRuleIndex) && isLocked
+                                            ? 'active'
+                                            : 'pending'; // Future rules or unlocked state
+
+                                // If vault is unlocked via failsafe but not completed successfully, maybe show all as pending or specialized state?
+                                // For now, if !isLocked and !completedSuccessfully, it implies Failsafe used.
+
+                                return (
+                                    <RuleItem
+                                        key={ruleAddr}
+                                        address={ruleAddr}
+                                        index={idx}
+                                        status={ruleStatus}
+                                    />
+                                );
+                            })}
                         </div>
                     )}
 

@@ -17,8 +17,8 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-1">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        <div className="lg:col-span-1 lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)]">
           <ProxyVaultForm />
         </div>
         <div className="lg:col-span-2">
